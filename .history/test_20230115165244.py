@@ -12,18 +12,37 @@ for f in os.listdir('./HandInp'):
     img = cv2.imread(f'./HandInp/{f}')
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     IMAGE_FILES.append(img)
+    
+cap = cv2.VideoCapture(0)
 
 with mp_hands.Hands(static_image_mode=True, max_num_hands=2,min_detection_confidence=0.5) as hands:
-    for i, file in enumerate(IMAGE_FILES):
-        file = cv2.flip(file, 1)
-        processed = hands.process(file)
-        print('Hand Type: ', processed.multi_handedness)
+    while cap.isOpened():
+        success, image = cap.read()
+        if not success:
+            print("No camera detected")
+            continue
+        
+        image.flags.writeable = False
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img.flags.writeable = True
+        
+        processed = hands.process(img)
+        file = cv2.flip(img, 1)
+        
         if not processed.multi_hand_landmarks:
             print("No hands detected")
             continue
+        
+        print('Hand Type: ', processed.multi_handedness)
+        
         image_height, image_width, _ = file.shape
         annotated_image = file.copy()
+        
         for hand_landmark in processed.multi_hand_landmarks:
             mp_drawing.draw_landmarks(annotated_image,hand_landmark,mp_hands.HAND_CONNECTIONS,mp_drawing_styles.get_default_hand_landmarks_style(),mp_drawing_styles.get_default_hand_connections_style())
-            cv2.imwrite(f'./HandOut/annotated{i}.jpeg', cv2.flip(annotated_image, 1))
+            cv2.imshow('MediaPipe Hands', cv2.flip(image, 1))
+        if cv2.waitKey(5) & 0xFF == 27:
+            break
+cap.release()
+
 
